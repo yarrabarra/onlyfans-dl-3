@@ -56,9 +56,9 @@ class Post(BaseModel):
     price: Decimal | None = None
     rawText: str | None = None
     responseType: str
-    streamId: str | None = None
-    text: str
-    tipsAmount: str
+    streamId: str | int | None = None
+    text: str | None = ""
+    tipsAmount: str | None = ""
     tipsAmountRaw: Decimal | None = None
     voting: Voting | list | None = None
 

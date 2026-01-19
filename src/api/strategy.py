@@ -1,6 +1,7 @@
 from urllib.parse import urlparse
 import requests
 import hashlib
+import json
 
 from typing import Callable
 from datetime import datetime
@@ -14,6 +15,8 @@ from loguru import logger as log
 from util import get_session_config
 from urllib.parse import urlencode
 from models.dynamicrule import DynamicRule
+
+USE_DYNAMIC = True
 
 
 def _get_api_headers() -> dict[str, str]:
@@ -30,8 +33,13 @@ def _get_api_headers() -> dict[str, str]:
 
 
 def _get_dynamic_rules() -> DynamicRule:
-    DYNAMIC_RULE_URL = "https://raw.githubusercontent.com/xagler/dynamic-rules/main/onlyfans.json"
-    result = requests.get(DYNAMIC_RULE_URL).json()
+    log.info("Fetching dynamic rules..")
+    if USE_DYNAMIC:
+        DYNAMIC_RULE_URL = "https://raw.githubusercontent.com/DATAHOARDERS/dynamic-rules/main/onlyfans.json"
+        result = requests.get(DYNAMIC_RULE_URL).json()
+    else:
+        with open("src/api/fallback.json") as json_file:
+            result = json.load(json_file)
     return DynamicRule.model_validate(result)
 
 

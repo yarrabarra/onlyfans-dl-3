@@ -28,9 +28,11 @@ def setup_logger(loglevel="INFO"):
     type=click.Choice(["all", "purchased", "messages", "posts"]),
     help="Which items to query",
 )
+@click.option("--label-id", default=None, help="A specific label id to query, must be used with --subscriptions")
+@click.option("--filter", default=None, help="A text filter that will only download posts that match")
 @click.option("--subscriptions", default="all", help="Which subscription usernames to query")
 @click.option("--loglevel", default="INFO", help="Log level for logging")
-@click.option("--max-post-days", default=14, help="Maximum number of days to go back for posts")
+@click.option("--max-post-days", default=3, help="Maximum number of days to go back for posts")
 @click.option("--session-vars-path", default="session_vars.json", help="Path to the set of session vars to use")
 @click.option(
     "--albums",
@@ -53,7 +55,7 @@ def main(targets, subscriptions, loglevel, *_, **__):
     start_time = time.time()
     ofd = OFDownloader()
 
-    ofd.run(targets, subscriptions)
+    success = ofd.run(targets, subscriptions)
 
     log.info("Processing finished.")
     runtime = time.time() - start_time
@@ -67,7 +69,10 @@ def main(targets, subscriptions, loglevel, *_, **__):
             log.info(f"  {download}")
 
     log.info("-" * 80)
+    return success
 
 
 if __name__ == "__main__":
-    main()
+    result = main()
+    if not result:
+        sys.exit(1)

@@ -1,3 +1,4 @@
+import click
 import os
 import pathlib
 import shutil
@@ -14,6 +15,14 @@ from ofdb import OFDB
 
 DRM_SUPPORT = False
 POSTS_LIMIT = 50
+
+
+@click.pass_context
+def get_filter(ctx):
+    text_filter = ctx.params.get("filter", "")
+    if text_filter is None:
+        return None
+    return text_filter.lower()
 
 
 class OFDownloader:
@@ -104,10 +113,16 @@ class OFDownloader:
         for post in posts:
             if not post.is_viewable():
                 continue
+
             if isinstance(post, Purchase) and post.fromUser is not None:
                 if post.fromUser.username != subscription.username:
                     # Skip purchases that are not from the subscription we're querying
                     continue
+            filter = get_filter()
+            if filter and post.text:
+                if filter not in post.text.lower():
+                    continue
+                log.info(f"Filter catching text: {post.text}")
             postdate = post.get_date()
             album = ""
             if len(post.media) > 1:  # Don't put single photo posts in a subfolder

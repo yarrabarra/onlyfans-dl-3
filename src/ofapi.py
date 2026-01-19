@@ -5,6 +5,7 @@ from typing import Type, Literal, Any
 from datetime import datetime, timedelta
 from loguru import logger as log
 from pydantic import ValidationError
+from collections.abc import Mapping
 
 from apiclient import APIClient, endpoint
 from apiclient.response_handlers import JsonResponseHandler
@@ -48,13 +49,18 @@ def get_max_days_offset(ctx):
     return delta // 1  # cheap floor that retains float
 
 
+@click.pass_context
+def get_label_id(ctx):
+    return ctx.params.get("label_id")
+
+
 @endpoint(base_url="https://onlyfans.com/api2/v2")
 class Endpoint:
     posts = "/users/{id}/posts"
     archived = "/users/{id}/posts/archived"
     stories = "/users/{id}/stories"
     messages = "/chats/{id}/messages"
-    purchased = "/posts/paid"
+    purchased = "/posts/paid/all"
     profile = "/users/{id}"
     subscriptions = "/subscriptions/subscribes"
     # https://onlyfans.com/api2/v2/users/media/3020233153/drm/post/738465453?type=widevine
@@ -75,7 +81,7 @@ class OFClient(APIClient):
         endpoint,
         itemType: Type[Offsetables],
         pageType: Literal["offset", "afterPublishTime", "id"],
-        paramOverride: dict[str, str | int] | None = None,
+        paramOverride: Mapping[str, str | int] | None = None,
         items: list[Offsetables] | None = None,
         pageOffset: int | float = 0,
     ) -> list[Any]:
@@ -143,11 +149,20 @@ class OFClient(APIClient):
 
     def get_posts(self, subscription: Profile) -> list[Post]:
         pageOffset = get_max_days_offset()
+        params = {"order": "publish_date_asc"}
+
+        # Conditionally filter by a label, we don't have a way to look this up yet so just use ID
+        label = get_label_id()
+        if label:
+            params["label"] = label
+
+        log.info(params)
+
         return self._get_by_offset(
             Endpoint.posts.format(id=subscription.id),
             Post,
             "afterPublishTime",
-            {"order": "publish_date_asc"},
+            params,
             pageOffset=pageOffset,
         )
 
